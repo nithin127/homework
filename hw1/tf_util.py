@@ -16,22 +16,22 @@ clip = tf.clip_by_value
 # ----------------------------------------
 
 def sum(x, axis=None, keepdims=False):
-    return tf.reduce_sum(x, reduction_indices=None if axis is None else [axis], keep_dims = keepdims)
+    return tf.reduce_sum(x, axis=None if axis is None else [axis], keep_dims = keepdims)
 def mean(x, axis=None, keepdims=False):
-    return tf.reduce_mean(x, reduction_indices=None if axis is None else [axis], keep_dims = keepdims)
+    return tf.reduce_mean(x, axis=None if axis is None else [axis], keep_dims = keepdims)
 def var(x, axis=None, keepdims=False):
     meanx = mean(x, axis=axis, keepdims=keepdims)
     return mean(tf.square(x - meanx), axis=axis, keepdims=keepdims)
 def std(x, axis=None, keepdims=False):
     return tf.sqrt(var(x, axis=axis, keepdims=keepdims))
 def max(x, axis=None, keepdims=False):
-    return tf.reduce_max(x, reduction_indices=None if axis is None else [axis], keep_dims = keepdims)
+    return tf.reduce_max(x, axis=None if axis is None else [axis], keep_dims = keepdims)
 def min(x, axis=None, keepdims=False):
-    return tf.reduce_min(x, reduction_indices=None if axis is None else [axis], keep_dims = keepdims)
+    return tf.reduce_min(x, axis=None if axis is None else [axis], keep_dims = keepdims)
 def concatenate(arrs, axis=0):
-    return tf.concat(axis, arrs)
+    return tf.concat(axis=axis, values=arrs)
 def argmax(x, axis=None):
-    return tf.argmax(x, dimension=axis)
+    return tf.argmax(x, axis=axis)
 
 def switch(condition, then_expression, else_expression):
     '''Switches between two operations depending on a scalar value (int or bool).
@@ -88,8 +88,8 @@ def make_session(num_cpu):
 
 ALREADY_INITIALIZED = set()
 def initialize():
-    new_variables = set(tf.all_variables()) - ALREADY_INITIALIZED
-    get_session().run(tf.initialize_variables(new_variables))
+    new_variables = set(tf.global_variables()) - ALREADY_INITIALIZED
+    get_session().run(tf.variables_initializer(new_variables))
     ALREADY_INITIALIZED.update(new_variables)
 
 
@@ -140,11 +140,11 @@ def conv2d(x, num_filters, name, filter_size=(3, 3), stride=(1, 1), pad="SAME", 
 
         w = tf.get_variable("W", filter_shape, dtype, tf.random_uniform_initializer(-w_bound, w_bound),
                             collections=collections)
-        b = tf.get_variable("b", [1, 1, 1, num_filters], initializer=tf.zeros_initializer,
+        b = tf.get_variable("b", [1, 1, 1, num_filters], initializer=tf.zeros_initializer(),
                             collections=collections)
 
         if summary_tag is not None:
-            tf.image_summary(summary_tag,
+            tf.summary.image(summary_tag,
                              tf.transpose(tf.reshape(w, [filter_size[0], filter_size[1], -1, 1]),
                                           [2, 0, 1, 3]),
                              max_images=10)
@@ -156,7 +156,7 @@ def dense(x, size, name, weight_init=None, bias=True):
     w = tf.get_variable(name + "/w", [x.get_shape()[1], size], initializer=weight_init)
     ret = tf.matmul(x, w)
     if bias:
-        b = tf.get_variable(name + "/b", [size], initializer=tf.zeros_initializer)
+        b = tf.get_variable(name + "/b", [size], initializer=tf.zeros_initializer())
         return ret + b
     else:
         return ret
@@ -388,7 +388,7 @@ def intprod(x):
 
 def flatgrad(loss, var_list):
     grads = tf.gradients(loss, var_list)
-    return tf.concat(0, [tf.reshape(grad, [numel(v)])
+    return tf.concat(axis=0, values=[tf.reshape(grad, [numel(v)])
         for (v, grad) in zip(var_list, grads)])
 
 class SetFromFlat(object):
@@ -410,7 +410,7 @@ class SetFromFlat(object):
 
 class GetFlat(object):
     def __init__(self, var_list):
-        self.op = tf.concat(0, [tf.reshape(v, [numel(v)]) for v in var_list])
+        self.op = tf.concat(axis=0, values=[tf.reshape(v, [numel(v)]) for v in var_list])
     def __call__(self):
         return get_session().run(self.op)
 
